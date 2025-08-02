@@ -1,6 +1,6 @@
 #include <EEPROM.h>      // biblioteka do obslugi pamieci nieulotnej
 #include <ModbusRtu.h>   // implementacja protokolu Modbus RTU
-#include <avr/interrupt.h> // definicje obslugi przerwan AVR
+#include <avr/interrupt.h> // definicje obslugi przerwan AVR (uzywane w bibliotece)
 #include "TriacDriver.h"  // obsluga impulsow triaka w osobnej bibliotece
 
 #define TXEN 2                 // pin sterujacy trybem nadawania RS485
@@ -94,29 +94,13 @@ void setup() {                               // funkcja inicjujaca
   mbRegs[5] = DEFAULT_PULSE_US;              // wpisz dlugosc impulsu
 }
 
-// Funkcja uruchamia Timer1 na 10 ms (półokres 50 Hz)
-void startSecondImpulseTimer() {
-  // 16 MHz / 8 (preskaler) = 2 000 000 Hz, 1 tick = 0.5 us
-  // 10 ms = 20 000 ticków
-  TCNT1 = 0;                              // wyzeruj licznik
-  OCR1A = 20000;  // 10ms                  // ustal wartosc porownania
-  TCCR1B = (1 << WGM12) | (1 << CS11);    // tryb CTC, preskaler 8
-  TIMSK1 |= (1 << OCIE1A);                // wlacz przerwanie compare match
-}
-
-// ISR Timer1: po 10 ms wyzwala drugi impuls
-ISR(TIMER1_COMPA_vect) {
-  triac.trigger(mb_power, pulseDuration);    // drugi impuls triaka
-  TIMSK1 &= ~(1 << OCIE1A);                  // wylacz przerwanie compare
-  TCCR1B = 0;                                // zatrzymaj timer
-}
 
 ISR(PCINT1_vect) {                            // obsluga zmiany stanu na PC2
   if (PINC & (1 << PC2)) {                    // wykryto zbocze narastajace
     if (last_CH1_state == 0) {                // jesli poprzednio bylo niskie
       // Hardware zero cross
-      triac.trigger(mb_power, pulseDuration); // pierwszy impuls natychmiast
-      startSecondImpulseTimer();              // zlecenie drugiego impulsu
+      // pierwszy impuls oraz zaplanowany drugi po 10 ms
+      triac.triggerWithSecond(mb_power, pulseDuration, 10);
     }
     last_CH1_state = 1;                       // zapamietaj stan wysoki
   } else {
