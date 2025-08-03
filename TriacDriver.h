@@ -10,6 +10,7 @@ public:
     void trigger(uint8_t power, uint16_t pulseUs);
     // Trigger pulse and automatically fire a second one after delayMs
     void triggerWithSecond(uint8_t power, uint16_t pulseUs, uint16_t delayMs = 10);
+    static void handleTimer1Compare();
 
 private:
     int _pin;
