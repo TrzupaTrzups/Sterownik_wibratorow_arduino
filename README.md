@@ -1,1 +1,41 @@
-# Sterownik_wibratorow_arduino
+# Sterownik wibratorów Arduino
+
+Ten projekt zawiera szkic `Sterownik_wibratorow_arduino.ino`, który umożliwia sterowanie triakiem za pomocą protokołu Modbus RTU. Logika wyzwalania triaka została wydzielona do biblioteki `TriacDriver`, co ułatwia ponowne wykorzystanie kodu. Biblioteka generuje dwa krótkie impulsy – drugi pojawia się domyślnie po 10&nbsp;ms – co zapewnia pewne zapalenie triaka. Układ przeznaczony jest do regulacji mocy urządzeń sieciowych poprzez włączanie triaka w odpowiednim momencie względem przejścia napięcia przez zero.
+
+## Wymagania
+- Płytka Arduino Nano lub kompatybilna
+- Biblioteki `EEPROM.h`, `ModbusRtu.h`, `TriacDriver`
+- Zewnętrzny sterownik (np. MAX485) do komunikacji RS‑485 jeśli używamy magistrali Modbus
+
+## Podłączenia
+- **D8** – bramka triaka
+- **A2** – detekcja przejścia przez zero (PCINT10)
+- **D9** – przytrzymanie w stanie niskim przez \>=1 s przy uruchamianiu zeruje ustawienia
+- **D2** – sygnał `TXEN` sterujący transceiverem RS‑485
+
+## Rejestry Modbus
+Program udostępnia 16 rejestrów (tablica `mbRegs`). Najważniejsze z nich:
+
+| Adres | Opis |
+|-------|------|
+| `0` | Adres urządzenia Modbus (1–247) |
+| `1` | Tryb ramek: 0 – 8N1, 1 – 8E1, 2 – 8O1 |
+| `2` | Prędkość transmisji (2400–115200) |
+| `3` | Moc (0–100 %, 0 wyłącza triak) |
+| `5` | Czas impulsu w µs (100–5000) |
+
+Zmiany wartości w tych rejestrach są zapisywane w pamięci EEPROM i przy kolejnym uruchomieniu odczytywane jako ustawienia domyślne.
+
+## Reset ustawień
+Aby przywrócić wartości domyślne, należy podczas włączania zasilania przytrzymać pin `resetPin` (D9) w stanie niskim przez co najmniej 1 s.
+
+## Kompilacja
+Szkic można wgrać z poziomu Arduino IDE lub narzędzia `arduino-cli`. W IDE wybierz płytkę **Arduino Nano** oraz programator **Atmel-ICE**.
+
+```bash
+arduino-cli compile --fqbn arduino:avr:nano Sterownik_wibratorow_arduino.ino
+arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:avr:nano --programmer atmel_ice Sterownik_wibratorow_arduino.ino
+```
+
+Przy braku `arduino-cli` w środowisku należy użyć Arduino IDE.
+
