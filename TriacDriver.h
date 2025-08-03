@@ -8,15 +8,17 @@ public:
     explicit TriacDriver(int pin);
     void begin();
     void trigger(uint8_t power, uint16_t pulseUs);
-    // Trigger pulse and automatically fire a second one after delayMs
+    // Trigger a pulse and schedule an identical one delayMs milliseconds later
     void triggerWithSecond(uint8_t power, uint16_t pulseUs, uint16_t delayMs = 10);
     static void handleTimer1Compare();
 
 private:
     int _pin;
     static TriacDriver* _instance;
-    static uint8_t _secondPower;
+    static uint16_t _secondDelay;
     static uint16_t _secondPulse;
+
+    void fireDelayed(uint16_t delayUs, uint16_t pulseUs);
 };
 
 #endif
