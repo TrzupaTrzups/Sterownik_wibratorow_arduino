@@ -25,23 +25,29 @@ void TriacDriver::trigger(uint8_t power, uint16_t pulseUs) {
 }
 
 void TriacDriver::triggerWithSecond(uint8_t power, uint16_t pulseUs, uint16_t delayMs) {
-    trigger(power, pulseUs);
-    if (delayMs == 0) return;
-    _secondPower = power;
-    _secondPulse = pulseUs;
+    if (delayMs > 0) {
+        _secondPower = power;
+        _secondPulse = pulseUs;
 
-    // Configure Timer1 for CTC mode with prescaler 8
-    TCNT1 = 0;
-    OCR1A = (uint32_t)delayMs * 2000; // 2MHz ticks -> 2000 per ms
-    TCCR1A = 0;
-    TCCR1B = (1 << WGM12) | (1 << CS11);
-    TIMSK1 |= (1 << OCIE1A);
+        // Configure Timer1 for CTC mode with prescaler 8
+        TCNT1 = 0;
+        OCR1A = (uint32_t)delayMs * 2000; // 2MHz ticks -> 2000 per ms
+        TCCR1A = 0;
+        TCCR1B = (1 << WGM12) | (1 << CS11);
+        TIMSK1 |= (1 << OCIE1A);
+    }
+
+    trigger(power, pulseUs);
+}
+
+void TriacDriver::handleTimer1Compare() {
+    if (_instance) {
+        _instance->trigger(_secondPower, _secondPulse);
+    }
 }
 
 ISR(TIMER1_COMPA_vect) {
-    if (TriacDriver::_instance) {
-        TriacDriver::_instance->trigger(TriacDriver::_secondPower, TriacDriver::_secondPulse);
-    }
+    TriacDriver::handleTimer1Compare();
     TIMSK1 &= ~(1 << OCIE1A);
     TCCR1B = 0;
 }
