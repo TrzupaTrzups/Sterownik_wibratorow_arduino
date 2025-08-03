@@ -2,6 +2,8 @@
 
 Ten projekt zawiera szkic `triac_controller.ino`, który umożliwia sterowanie triakiem za pomocą protokołu Modbus RTU. Logika wyzwalania triaka została wydzielona do biblioteki `TriacDriver`, co ułatwia ponowne wykorzystanie kodu. Biblioteka generuje dwa krótkie impulsy – drugi pojawia się domyślnie po 10&nbsp;ms – co zapewnia pewne zapalenie triaka. Układ przeznaczony jest do regulacji mocy urządzeń sieciowych poprzez włączanie triaka w odpowiednim momencie względem przejścia napięcia przez zero.
 
+Od wersji bieżącej sterownik posiada funkcję łagodnego narastania mocy. Przy uruchomieniu oraz każdej zmianie nastawy mocy sygnał wyjściowy zwiększa lub zmniejsza się liniowo w zadanym czasie.
+
 ## Wymagania
 - Płytka zgodna z Arduino (np. Arduino Uno)
 - Biblioteki `EEPROM.h`, `ModbusRtu.h`, `TriacDriver`
@@ -21,7 +23,8 @@ Program udostępnia 16 rejestrów (tablica `mbRegs`). Najważniejsze z nich:
 | `0` | Adres urządzenia Modbus (1–247) |
 | `1` | Tryb ramek: 0 – 8N1, 1 – 8E1, 2 – 8O1 |
 | `2` | Prędkość transmisji (2400–115200) |
-| `3` | Moc (0–100 %, 0 wyłącza triak) |
+| `3` | Moc docelowa (0–100 %, 0 wyłącza triak) |
+| `4` | Czas narastania mocy w ms (0–10000) |
 | `5` | Czas impulsu w µs (100–5000) |
 
 Zmiany wartości w tych rejestrach są zapisywane w pamięci EEPROM i przy kolejnym uruchomieniu odczytywane jako ustawienia domyślne.

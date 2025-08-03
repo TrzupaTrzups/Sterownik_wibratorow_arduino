@@ -19,9 +19,19 @@ TriacDriver triac(triacPin);   // obiekt obslugi triaka
 #define DEFAULT_PULSE_US 150   // domyslna dlugosc impulsu w microsekundach
 #define MIN_PULSE_US 100       // minimalna dozwolona dlugosc impulsu
 #define MAX_PULSE_US 5000      // maksymalna dozwolona dlugosc impulsu
+#define DEFAULT_SOFTSTART_MS 1000 // domyslny czas narastania mocy w ms
+#define MIN_SOFTSTART_MS 0        // minimalny czas narastania
+#define MAX_SOFTSTART_MS 10000    // maksymalny czas narastania
 
-volatile uint8_t mb_power = DEFAULT_POWER; // aktualna moc sterowania
+volatile uint8_t currentPower = 0;      // aktualna moc sterowania
+uint8_t mb_power = DEFAULT_POWER;       // docelowa moc ustawiana przez Modbus
 static uint16_t pulseDuration = DEFAULT_PULSE_US; // aktualny czas impulsu
+static uint16_t softStartTime = DEFAULT_SOFTSTART_MS; // czas narastania mocy
+static uint8_t startPower = 0;          // moc poczatkowa przy narastaniu
+static bool softStartActive = false;    // flaga aktywnego narastania
+static uint16_t softStartSteps = 1;     // liczba cykli narastania
+static uint16_t softStepCount = 0;      // aktualny licznik cykli
+static int16_t softDelta = 0;           // roznica mocy do pokonania
 
 volatile int last_CH1_state = 0;        // poprzedni stan wejscia zerowego
 
@@ -34,22 +44,58 @@ const uint8_t numBaudRates = sizeof(validBaudRates)/sizeof(validBaudRates[0]);  
 
 Modbus slave(DEFAULT_MB_ADDR, Serial, TXEN); // obiekt klasy Modbus pracujacy jako slave
 
+void startSoftChange(uint8_t newTarget) {
+  startPower = currentPower;                 // zapamietaj moc poczatkowa
+  mb_power = newTarget;                      // ustaw wartosc docelowa
+  if (softStartTime == 0 || mb_power == startPower) { // brak narastania
+    currentPower = mb_power;
+    softStartActive = false;
+  } else {
+    softStartSteps = softStartTime / 20;     // liczba cykli przy 50 Hz (20 ms)
+    if (softStartSteps == 0) softStartSteps = 1; // zabezpieczenie
+    softStepCount = 0;
+    softDelta = (int16_t)mb_power - startPower; // docelowa zmiana
+    softStartActive = true;                   // aktywuj narastanie
+  }
+}
+
+void updateSoftChange() {
+  if (softStartActive) {
+    if (softStepCount >= softStartSteps) {    // zakoncz narastanie
+      currentPower = mb_power;
+      softStartActive = false;
+    } else {
+      softStepCount++;                        // kolejny cykl
+      currentPower = startPower + ((int32_t)softDelta * softStepCount) / softStartSteps;
+    }
+  } else {
+    currentPower = mb_power;                 // brak narastania
+  }
+}
+
 void resetToDefaults() {                      // przywraca wartosci domyslne
   mb_addr = DEFAULT_MB_ADDR;                  // domyslny adres
   mb_frame = DEFAULT_FRAME;                   // domyslny typ ramki
   mb_baud = DEFAULT_BAUD;                     // domyslna predkosc
-  mb_power = DEFAULT_POWER;                   // domyslna moc
+  mb_power = DEFAULT_POWER;                   // domyslna moc docelowa
+  currentPower = 0;                           // ustaw aktualna moc na 0
+  softStartTime = DEFAULT_SOFTSTART_MS;       // domyslny czas narastania
+  softStartActive = false;                    // brak narastania
+  softStepCount = 0;                          // wyzeruj licznik
+  softDelta = 0;
   EEPROM.update(0, mb_addr);                  // zapis do EEPROM
   EEPROM.update(1, mb_frame);                 // zapis typu ramki
   EEPROM.put(2, mb_baud);                     // zapis predkosci
-  EEPROM.update(6, mb_power);                 // zapis mocy
+  EEPROM.update(6, mb_power);                 // zapis mocy docelowej
+  EEPROM.put(7, softStartTime);               // zapis czasu narastania
 }
 
 void loadSettings() {                          // wczytuje ustawienia z EEPROM
   mb_addr = EEPROM.read(0);                    // odczyt adresu
   mb_frame = EEPROM.read(1);                   // odczyt typu ramki
   EEPROM.get(2, mb_baud);                      // odczyt predkosci
-  mb_power = EEPROM.read(6);                   // odczyt mocy
+  mb_power = EEPROM.read(6);                   // odczyt docelowej mocy
+  EEPROM.get(7, softStartTime);                // odczyt czasu narastania
   if (mb_addr < 1 || mb_addr > 247) mb_addr = DEFAULT_MB_ADDR; // walidacja adresu
   if (mb_frame > 2) mb_frame = DEFAULT_FRAME;  // walidacja ramki
   bool foundBaud = false;                      // sprawdzanie poprawnej predkosci
@@ -57,6 +103,8 @@ void loadSettings() {                          // wczytuje ustawienia z EEPROM
     if (mb_baud == validBaudRates[i]) foundBaud = true; // czy znaleziono
   if (!foundBaud) mb_baud = DEFAULT_BAUD;      // jesli nie, ustaw domyslna
   if (mb_power > 100) mb_power = DEFAULT_POWER; // zakres mocy 0..100
+  if (softStartTime < MIN_SOFTSTART_MS || softStartTime > MAX_SOFTSTART_MS)
+    softStartTime = DEFAULT_SOFTSTART_MS;      // zakres czasu narastania
 }
 
 void setup() {                               // funkcja inicjujaca
@@ -74,6 +122,8 @@ void setup() {                               // funkcja inicjujaca
 
   loadSettings();                            // wczytaj ustawienia zapisane w EEPROM
 
+  startSoftChange(mb_power);                 // lagodny start od 0 do docelowej mocy
+
   Serial.begin(mb_baud);                     // start portu szeregowego
   slave = Modbus(mb_addr, Serial, TXEN);     // inicjacja protokolu Modbus
   slave.start();                             // uruchom slave
@@ -90,17 +140,19 @@ void setup() {                               // funkcja inicjujaca
   mbRegs[0] = mb_addr;                       // wpisz aktualny adres do rejestru
   mbRegs[1] = mb_frame;                      // wpisz typ ramki
   mbRegs[2] = (uint16_t)mb_baud;             // wpisz predkosc
-  mbRegs[3] = mb_power;                      // wpisz moc
-  mbRegs[5] = DEFAULT_PULSE_US;              // wpisz dlugosc impulsu
+  mbRegs[3] = mb_power;                      // wpisz moc docelowa
+  mbRegs[4] = softStartTime;                 // wpisz czas narastania
+  mbRegs[5] = pulseDuration;                 // wpisz dlugosc impulsu
 }
 
 
 ISR(PCINT1_vect) {                            // obsluga zmiany stanu na PC2
   if (PINC & (1 << PC2)) {                    // wykryto zbocze narastajace
     if (last_CH1_state == 0) {                // jesli poprzednio bylo niskie
+      updateSoftChange();                     // zaktualizuj moc przed impulsem
       // Hardware zero cross
       // pierwszy impuls oraz zaplanowany drugi po 10 ms
-      triac.triggerWithSecond(mb_power, pulseDuration, 10);
+      triac.triggerWithSecond(currentPower, pulseDuration, 10);
     }
     last_CH1_state = 1;                       // zapamietaj stan wysoki
   } else {
@@ -142,16 +194,26 @@ void loop() {                                 // glowna petla programu
       }
     }
     if (!valid) {                             // jesli wartosc niedozwolona
-      mbRegs[2] = (uint16_t)mb_baud;          // przywroc poprzednia
+      mbRegs[2] = static_cast<uint16_t>(mb_baud);  // przywroc poprzednia
     }
   } else {
-    mbRegs[2] = (uint16_t)mb_baud;            // przekaz aktualna predkosc
+    mbRegs[2] = static_cast<uint16_t>(mb_baud); // przekaz aktualna predkosc
   }
   if (mbRegs[3] != mb_power && mbRegs[3] <= 100) { // zmiana mocy
-    mb_power = mbRegs[3];                 // zapisz nowa wartosc
-    EEPROM.update(6, mb_power);           // aktualizacja EEPROM
+    startSoftChange(mbRegs[3]);            // rozpoczynij lagodna zmiane mocy
+    EEPROM.update(6, mb_power);            // zapis docelowej mocy
   } else {
-    mbRegs[3] = mb_power;                 // zwroc aktualna moc
+    mbRegs[3] = mb_power;                  // zwroc docelowa moc
+  }
+  if (mbRegs[4] != softStartTime) {        // zmiana czasu narastania
+    if (mbRegs[4] >= MIN_SOFTSTART_MS && mbRegs[4] <= MAX_SOFTSTART_MS) {
+      softStartTime = mbRegs[4];           // zapisz nowa wartosc
+      EEPROM.put(7, softStartTime);        // zapisz w EEPROM
+    } else {
+      mbRegs[4] = softStartTime;           // przywroc poprzednia
+    }
+  } else {
+    mbRegs[4] = softStartTime;             // potwierdz aktualny czas
   }
   if (mbRegs[5] != pulseDuration) {        // zmiana dlugosci impulsu
     if (mbRegs[5] >= MIN_PULSE_US && mbRegs[5] <= MAX_PULSE_US) { // w zakresie
@@ -162,5 +224,6 @@ void loop() {                                 // glowna petla programu
   } else {
     mbRegs[5] = pulseDuration;             // potwierdz aktualna dlugosc
   }
+
 }
 
