@@ -31,6 +31,13 @@ Program udostępnia 16 rejestrów (tablica `mbRegs`). Najważniejsze z nich:
 
 Zmiany wartości w tych rejestrach są zapisywane w pamięci EEPROM i przy kolejnym uruchomieniu odczytywane jako ustawienia domyślne.
 
+## Domyślne ustawienia komunikacji
+- Adres urządzenia Modbus: `1`
+- Format ramki: `8N1` (wartość `0` w rejestrze 1)
+- Prędkość transmisji: `9600` bps
+
+Wartości te można zmienić poprzez odpowiednie rejestry Modbus.
+
 ## Reset ustawień
 Aby przywrócić wartości domyślne, należy podczas włączania zasilania przytrzymać pin `resetPin` (D9) w stanie niskim przez co najmniej 1 s.
 
