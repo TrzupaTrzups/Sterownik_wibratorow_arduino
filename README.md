@@ -14,6 +14,7 @@ Od wersji bieżącej sterownik posiada funkcję łagodnego narastania mocy. Przy
 - **A2** – detekcja przejścia przez zero (PCINT10)
 - **D9** – przytrzymanie w stanie niskim przez \>=1 s przy uruchamianiu zeruje ustawienia
 - **D2** – sygnał `TXEN` sterujący transceiverem RS‑485
+- **PE3** – sterowanie przekaźnikiem (wyjście)
 
 ## Rejestry Modbus
 Program udostępnia 16 rejestrów (tablica `mbRegs`). Najważniejsze z nich:
@@ -26,6 +27,7 @@ Program udostępnia 16 rejestrów (tablica `mbRegs`). Najważniejsze z nich:
 | `3` | Moc docelowa (0–100 %, 0 wyłącza triak) |
 | `4` | Czas narastania mocy w ms (0–10000) |
 | `5` | Czas impulsu w µs (100–5000) |
+| `6` | Stan przekaźnika (0 – wyłączony, 1 – włączony) |
 
 Zmiany wartości w tych rejestrach są zapisywane w pamięci EEPROM i przy kolejnym uruchomieniu odczytywane jako ustawienia domyślne.
 
