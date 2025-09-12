@@ -7,6 +7,7 @@
 const int triacPin = 8;        // wyjscie sterujace bramka triaka
 const int zeroCrossPin = A2;   // wejscie detekcji przejscia przez zero
 const int resetPin = 9;        // pin resetu ustawien (przycisk)
+const int relayPin = 5;        // PE3
 
 uint16_t mbRegs[16] = {0};     // tablica rejestrow Modbus
 
@@ -38,6 +39,7 @@ volatile int last_CH1_state = 0;        // poprzedni stan wejscia zerowego
 uint8_t mb_addr;     // adres urzadzenia
 uint8_t mb_frame;    // typ ramki Modbus
 unsigned long mb_baud; // predkosc transmisji
+uint16_t relayState = 0;                // stan przekaznika
 
 const unsigned long validBaudRates[] = {2400, 4800, 9600, 19200, 38400, 57600, 115200}; // lista dozwolonych predkosci
 const uint8_t numBaudRates = sizeof(validBaudRates)/sizeof(validBaudRates[0]);         // liczba elementow listy
@@ -111,6 +113,8 @@ void setup() {                               // funkcja inicjujaca
   triac.begin();                             // konfiguracja pinu triaka
   pinMode(zeroCrossPin, INPUT_PULLUP);       // wejscie z podciagnieciem
   pinMode(resetPin, INPUT_PULLUP);           // przycisk resetu
+  pinMode(relayPin, OUTPUT);                 // konfiguracja przekaznika
+  digitalWrite(relayPin, LOW);               // domyslnie wylaczony
 
   if (digitalRead(resetPin) == LOW) {        // sprawdzenie czy wcisniety reset
     unsigned long t0 = millis();             // zapamietaj czas poczatkowy
@@ -143,6 +147,7 @@ void setup() {                               // funkcja inicjujaca
   mbRegs[3] = mb_power;                      // wpisz moc docelowa
   mbRegs[4] = softStartTime;                 // wpisz czas narastania
   mbRegs[5] = pulseDuration;                 // wpisz dlugosc impulsu
+  mbRegs[6] = relayState;                    // stan przekaznika
 }
 
 
@@ -223,6 +228,14 @@ void loop() {                                 // glowna petla programu
     }
   } else {
     mbRegs[5] = pulseDuration;             // potwierdz aktualna dlugosc
+  }
+
+  if (mbRegs[6] != relayState) {           // zmiana stanu przekaznika
+    relayState = mbRegs[6] ? 1 : 0;         // ogranicz do 0 lub 1
+    digitalWrite(relayPin, relayState ? HIGH : LOW); // ustaw pin
+    mbRegs[6] = relayState;                 // potwierdz zapisany stan
+  } else {
+    mbRegs[6] = relayState;                // odzwierciedl aktualny stan
   }
 
 }
