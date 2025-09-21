@@ -17,19 +17,21 @@ Od wersji bieżącej sterownik posiada funkcję łagodnego narastania mocy. Przy
 - **A0 / PC0 (fizyczny pin 23)** – sterowanie przekaźnikiem (wyjście)
 
 ## Rejestry Modbus
-Program udostępnia 16 rejestrów (tablica `mbRegs`). Najważniejsze z nich:
+Program udostępnia 16 rejestrów typu Holding (tablica `mbRegs`). Rejestry te można odczytywać funkcją Modbus FC03 (Read Holding Registers), a zapisywać funkcjami FC06 (Write Single Register) lub FC16 (Write Multiple Registers). Najważniejsze z nich:
 
-| Adres | Opis |
-|-------|------|
-| `0` | Adres urządzenia Modbus (1–247) |
-| `1` | Tryb ramek: 0 – 8N1, 1 – 8E1, 2 – 8O1 |
-| `2` | Prędkość transmisji (2400–115200) |
-| `3` | Moc docelowa (0–100 %, 0 wyłącza triak) |
-| `4` | Czas narastania mocy w ms (0–10000) |
-| `5` | Czas impulsu w µs (100–5000) |
-| `6` | Stan przekaźnika (0 – wyłączony, 1 – włączony) |
+| Adres | Opis | Dostęp |
+|-------|------|--------|
+| `0` | Adres urządzenia Modbus (1–247). Po poprawnym zapisie restartuje konfigurację komunikacji. | R/W (FC03, FC06/FC16) |
+| `1` | Tryb ramek: 0 – 8N1, 1 – 8E1, 2 – 8O1. | R/W (FC03, FC06/FC16) |
+| `2` | Prędkość transmisji. Przyjmuje wyłącznie wartości z listy: 2400, 4800, 9600, 19200, 38400, 57600, 115200. | R/W (FC03, FC06/FC16) |
+| `3` | Moc docelowa (0–100 %, 0 wyłącza triak). | R/W (FC03, FC06/FC16) |
+| `4` | Czas narastania mocy w ms (0–10000). | R/W (FC03, FC06/FC16) |
+| `5` | Czas impulsu w µs (100–5000). | R/W (FC03, FC06/FC16) |
+| `6` | Stan przekaźnika (0 – wyłączony, 1 – włączony). | R/W (FC03, FC06/FC16) |
 
-Zmiany wartości w tych rejestrach są zapisywane w pamięci EEPROM i przy kolejnym uruchomieniu odczytywane jako ustawienia domyślne.
+Pozostałe rejestry (`7`–`15`) są obecnie niewykorzystywane.
+
+Zmiany zapisane w rejestrach `0`–`4` są przechowywane w pamięci EEPROM i po ponownym uruchomieniu wczytywane jako ustawienia domyślne. Rejestry `5` i `6` wpływają wyłącznie na bieżące działanie urządzenia.
 
 ## Domyślne ustawienia komunikacji
 - Adres urządzenia Modbus: `1`
