@@ -7,7 +7,7 @@
 const int triacPin = 8;        // wyjscie sterujace bramka triaka
 const int zeroCrossPin = A2;   // wejscie detekcji przejscia przez zero
 const int resetPin = 9;        // pin resetu ustawien (przycisk)
-const int relayPin = 5;        // PE3
+const int relayPin = 22;       // PC0
 
 uint16_t mbRegs[16] = {0};     // tablica rejestrow Modbus
 
