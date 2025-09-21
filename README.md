@@ -14,7 +14,7 @@ Od wersji bieżącej sterownik posiada funkcję łagodnego narastania mocy. Przy
 - **A2** – detekcja przejścia przez zero (PCINT10)
 - **D9** – przytrzymanie w stanie niskim przez \>=1 s przy uruchamianiu zeruje ustawienia
 - **D2** – sygnał `TXEN` sterujący transceiverem RS‑485
-- **PE3** – sterowanie przekaźnikiem (wyjście)
+- **A0 / PC0 (fizyczny pin 23)** – sterowanie przekaźnikiem (wyjście)
 
 ## Rejestry Modbus
 Program udostępnia 16 rejestrów (tablica `mbRegs`). Najważniejsze z nich:
