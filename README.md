@@ -1,6 +1,6 @@
 # Sterownik wibratorów Arduino
 
-Ten projekt zawiera szkic `triac_controller.ino`, który umożliwia sterowanie triakiem za pomocą protokołu Modbus RTU. Logika wyzwalania triaka została wydzielona do biblioteki `TriacDriver`, co ułatwia ponowne wykorzystanie kodu. Biblioteka generuje dwa krótkie impulsy – drugi pojawia się domyślnie po 10&nbsp;ms – co zapewnia pewne zapalenie triaka. Układ przeznaczony jest do regulacji mocy urządzeń sieciowych poprzez włączanie triaka w odpowiednim momencie względem przejścia napięcia przez zero.
+Ten projekt zawiera szkic `Sterownik_wibratorów_arduino.ino`, który umożliwia sterowanie triakiem za pomocą protokołu Modbus RTU. Logika wyzwalania triaka została wydzielona do biblioteki `TriacDriver`, co ułatwia ponowne wykorzystanie kodu. Biblioteka generuje dwa krótkie impulsy – drugi pojawia się domyślnie po 10&nbsp;ms – co zapewnia pewne zapalenie triaka. Układ przeznaczony jest do regulacji mocy urządzeń sieciowych poprzez włączanie triaka w odpowiednim momencie względem przejścia napięcia przez zero.
 
 Od wersji bieżącej sterownik posiada funkcję łagodnego narastania mocy. Przy uruchomieniu oraz każdej zmianie nastawy mocy sygnał wyjściowy zwiększa lub zmniejsza się liniowo w zadanym czasie.
 
