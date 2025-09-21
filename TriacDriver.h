@@ -14,11 +14,18 @@ public:
 
 private:
     int _pin;
+    volatile uint8_t* _port;
+    uint8_t _bitMask;
     static TriacDriver* _instance;
-    static uint16_t _secondDelay;
-    static uint16_t _secondPulse;
+    static volatile uint16_t _intervals[4];
+    static volatile uint8_t _eventCount;
+    static volatile uint8_t _currentEvent;
 
     void fireDelayed(uint16_t delayUs, uint16_t pulseUs);
+    void scheduleIntervals(const uint16_t* intervals, uint8_t count);
+    static uint16_t microsecondsToTicks(uint32_t microseconds);
+    void applyEvent(uint8_t eventIndex);
+    void stopTimer();
 };
 
 #endif
