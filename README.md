@@ -5,9 +5,7 @@ Ten projekt zawiera szkic `Sterownik_wibratorów_arduino.ino`, który umożliwia
 Od wersji bieżącej sterownik posiada funkcję łagodnego narastania mocy. Przy uruchomieniu oraz każdej zmianie nastawy mocy sygnał wyjściowy zwiększa lub zmniejsza się liniowo w zadanym czasie.
 
 ## Wymagania
-- Płytka zgodna z Arduino (np. Arduino Uno)
 - Biblioteki `EEPROM.h`, `ModbusRtu.h`, `TriacDriver`
-- Zewnętrzny sterownik (np. MAX485) do komunikacji RS‑485 jeśli używamy magistrali Modbus
 
 ## Podłączenia
 - **D8** – bramka triaka
@@ -50,6 +48,4 @@ Szkic można wgrać z poziomu Arduino IDE lub narzędzia `arduino-cli`:
 arduino-cli compile --fqbn arduino:avr:uno
 arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:avr:uno
 ```
-
-Przy braku `arduino-cli` w środowisku należy użyć Arduino IDE.
 
